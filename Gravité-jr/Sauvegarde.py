@@ -3,7 +3,7 @@ import pickle
 import os
 
 
-M_1 = 50.972 * 10 ** 24
+M_1 = 250.972 * 10 ** 24
 M_2 = 7.34767309 * 10 ** 23
 G = 6.67430 * 10 ** (-11)
 objets_1 = [
@@ -80,16 +80,28 @@ objets_6 = [
     ],
     []
 ]
+
+objets_7 = [
+    [
+        (M_1, [0, 0, 0], [0, 0, 0], [0, 0, 1, 1]),
+        (M_2, [0, np.sqrt(G * M_1/D), 0], [D, 0, 0], [0, 1, 1, 1])
+    ],
+    []
+]
 os.remove("Sauvegarde.data")
 dicto = {"objets_1": objets_1, "objets_2": objets_2, "objets_3": objets_3, "objets_4": objets_4, "objets_5": objets_5, "objets_6": objets_6}
 fw = open("Sauvegarde.data", 'wb')
 pickle.dump(dicto, fw)
 fw.close()
 
-print(np.sqrt((D * (M_1 - M_2)/(M_1 + M_2) / 2)**2 + (D * np.sqrt(3) / 2)**2))
-print(f"v = {v}")
-print(f"v_particule = {v_particule}")
-k = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])
-print(np.sqrt(k))
+print(np.cbrt(3 / (4 * np.pi*5.51)))
+
+print(0.7024519022997551 * np.cbrt(M_1))
+
+# print(np.sqrt((D * (M_1 - M_2)/(M_1 + M_2) / 2)**2 + (D * np.sqrt(3) / 2)**2))
+# print(f"v = {v}")
+# print(f"v_particule = {v_particule}")
+# k = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+# print(np.sqrt(k))
 
 
