@@ -1,19 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Demonstrates use of GLScatterPlotItem with rapidly-updating plots.
-
-"""
-
-## Add path to library (just for examples; you do not need this)
-
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
-import pyqtgraph.opengl as gl
+import sys
 import numpy as np
 from Sauvegarde import objets_5 as obj
 import pickle
 import os
-
+from vispy import app, scene
 
 # ---- trucs de sauvegarde
 # Si le fichier Sauvegarde.data est inexistant, il crée un fichier vide portant ce nom
@@ -40,7 +30,7 @@ else:
 objets_total = objets  # les objets dans la sauvegarde, ainsi que les métadonnées qu'il pourrait éventuellement y avoir
 objets = objets[0]  # Objets de la sauvegarde, sans métadonnées
 temps = 0  # temps auquel la simulation est rendue
-uns = np.array([[[1, 1, 1]], [[1, 1, 1]], [[1, 1, 1]]])  # hmmm, j'ai aucune idée ce que ça fait
+# uns = np.array([[[1, 1, 1]], [[1, 1, 1]], [[1, 1, 1]]])  # hmmm, j'ai aucune idée ce que ça fait
 delta_t = 10  # pas de temps
 G = 6.67430 * 10 ** (-11)  # constante gravitationnelle kg m^3/s^2 * (1 km / 1000 m)^3
 # pos = []  # éventuellement une matrice de positions
@@ -153,12 +143,12 @@ barycentre_1 = np.array([np.array([np.concatenate(np.array([barycentre_1]).T, ax
 pos = pos_init - barycentre_1
 # position()
 
-# J'ai sincèrement aucune idée de ce qui se passe à partir d'ici...
-app = pg.mkQApp("GLScatterPlotItem Example")
-w = gl.GLViewWidget()
-w.opts['distance'] = 20
-w.show()
-w.setWindowTitle('Énorme simulation de gravité')
+canvas = scene.SceneCanvas(keys='interactive', size=(1200, 1200), show=True)
+view = canvas.central_widget.add_view()
+view.camera = scene.cameras.TurntableCamera()
+view.camera.scale_factor = 500
+
+
 
 # g = gl.GLGridItem()
 # w.addItem(g)
@@ -171,28 +161,46 @@ pos3 = pos3.T
 couleur = []
 for i in range(n_objets):
     if len(objets[0]) == 4:
-        couleur.append(objets[i][3])
+        couleur.append(np.array([objets[i][3][:3]]))
     else:
-        couleur = [1, 1, 1, .3]
+        couleur = [1, 1, 1]
 couleur = np.array(couleur)
+
+# data = np.concatenate([data, [[0, 0, 0]]], axis=0)
+# size = np.concatenate([tailles, [100]], axis=0)
+colors = np.concatenate(couleur, axis=0)
+
+
+
+# Create and show visual
+vis = scene.visuals.Markers(
+    pos=pos[0, :, :].T,
+    size=tailles,
+    antialias=0,
+    face_color=colors,
+    edge_color='white',
+    edge_width=0,
+    scaling=True,
+    spherical=True,
+)
+vis.parent = view.scene
 # plot les objets (points)
-sp3 = gl.GLScatterPlotItem(pos=pos3, color=couleur, size=tailles, pxMode=False)
 # On ajoute les points au graphique
-w.addItem(sp3)
+
 
 # Stack correspond à la matrice m X 3 X n (n = nombre d'itérations) des positions à travers le temps pour avoir les
 #       trajectoires
 stack = np.array([pos3])
 stack = np.rot90(stack, axes=(0, 1))
-liste = [] # liste des différentes trajectoires
-if len(objets_total[1]) != 0:
-    for i in objets_total[1]:
-        w.addItem(i) # on ajoute les trajectoires en métadonnées, s'il y en a
-for i in range(n_objets):  # On met les différentes trajectoires dans le graphique
-    liste.append(gl.GLLinePlotItem(pos=stack[i, :, :],
-                                   color=list(np.array(objets[n_objets - i - 1][3]) - np.array([0, 0, 0, 0.5])),
-                                   width=1, antialias=True, mode='line_strip'))
-    w.addItem(liste[i])
+liste = []  # liste des différentes trajectoires
+# if len(objets_total[1]) != 0:
+#     for i in objets_total[1]:
+#         w.addItem(i)  # on ajoute les trajectoires en métadonnées, s'il y en a
+# for i in range(n_objets):  # On met les différentes trajectoires dans le graphique
+#     liste.append(gl.GLLinePlotItem(pos=stack[i, :, :],
+#                                    color=list(np.array(objets[n_objets - i - 1][3]) - np.array([0, 0, 0, 0.5])),
+#                                    width=1, antialias=True, mode='line_strip'))
+#     w.addItem(liste[i])
 k = 0
 
 
@@ -214,24 +222,31 @@ def save(ecriture=False):  # Éventuellement pour sauvegarder. Fonctionne pas po
 # Pour avoir un référentiel en rotation (vraiment utile pour checker les points de Lagrange)
 
 
+# def update():  # C'est ça qui update la position dans l'interface graphique
+#     # update surface positions and colors
+#     global sp3, pos3, pos, stack, liste, k
+#     position()  # On calcule la nouvelle position
+#     pos3 = np.array([pos_finale[0, :, :].T])
+#     # On ajoute les positions à stack, la matrice 3D de toutes les positions servant à grapher les trajectoires.
+#     stack = np.concatenate((stack, np.rot90(pos3, axes=(0, 1))), axis=1)
+#     for i, j in enumerate(liste):  # on update les lignes de trajectoires dans la liste
+#         j.setData(pos=stack[i, :, :])
+#     sp3.setData(pos=pos3)  # On update les positions
 
-def update():  # C'est ça qui update la position dans l'interface graphique
-    # update surface positions and colors
-    global sp3, pos3, pos, stack, liste, k
-    position()  # On calcule la nouvelle position
-    pos3 = np.array([pos_finale[0, :, :].T])
-    # On ajoute les positions à stack, la matrice 3D de toutes les positions servant à grapher les trajectoires.
-    stack = np.concatenate((stack, np.rot90(pos3, axes=(0, 1))), axis=1)
-    for i, j in enumerate(liste):  # on update les lignes de trajectoires dans la liste
-        j.setData(pos=stack[i, :, :])
-    sp3.setData(pos=pos3)  # On update les positions
+
+def update(ev):
+    global pos, vis
+    position()
+    vis._data = pos[0, :, :]
 
 
-# A rapport avec le graphique I guess
-t = QtCore.QTimer()
-t.timeout.connect(update)
-t.start(1)
+timer = app.Timer()
+timer.connect(update)
+timer.start(0)
 
 # Boucle de simulation (j'ai aucune idée de ce qui se passe là-dedans)
-if __name__ == '__main__':
-    pg.mkQApp().exec_()
+if __name__ == '__main__' and sys.flags.interactive == 0:
+    app.run()
+
+
+

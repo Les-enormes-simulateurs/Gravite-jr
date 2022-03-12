@@ -36,7 +36,7 @@ if nom_fichier == '':
 else:
     objets = liste_objets[nom_fichier]
     print(liste_objets[nom_fichier])
-# initialisation des principales variables
+# --- initialisation des principales variables
 objets_total = objets  # les objets dans la sauvegarde, ainsi que les métadonnées qu'il pourrait éventuellement y avoir
 objets = objets[0]  # Objets de la sauvegarde, sans métadonnées
 temps = 0  # temps auquel la simulation est rendue
@@ -44,8 +44,7 @@ uns = np.array([[[1, 1, 1]], [[1, 1, 1]], [[1, 1, 1]]])  # hmmm, j'ai aucune id�
 delta_t = 10 # pas de temps
 G = 6.67430 * 10 ** (-11) # constante gravitationnelle
 # pos = []  # éventuellement une matrice de positions
-v = []  # éventuellement une matrice de
-# liste = []
+# v = []  # éventuellement une matrice de vitesses
 
 
 n_objets = len(objets)
@@ -105,8 +104,8 @@ def position():
     # On fait tourner notre matrice pour qu'elle soit dans le bon axe pour la multiplication matricielle
     module = np.rot90(module, axes=(1, 0))
     module = np.rot90(module, axes=(2, 1))
-    # On multiplie la matrice de distance vectorielle par celle du module de GM/R^3 pour obtenir un vecteur
-    #   d'accélération. En gros, ça revient à un produit scalaire, mais de matrices.
+    # On multiplie la matrice de distance vectorielle par celle du module de GM/R^3 pour obtenir une matrice
+    #   d'accélération. En gros, ça revient à un produit d'une matrice par un vecteur, mais avec une dimension de plus.
     acc = posR @ module
     # On fait tourner notre vecteur pour qu'il soit dans le bon axe pour la suite des calculs.
     acc = np.rot90(acc, k=3, axes=(2, 0))

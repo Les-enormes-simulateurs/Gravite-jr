@@ -1,20 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-Demonstrates use of GLScatterPlotItem with rapidly-updating plots.
-
-"""
-
-## Add path to library (just for examples; you do not need this)
-
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
-import pyqtgraph.opengl as gl
+from vpython import *
 import numpy as np
-from Sauvegarde import objets_5 as obj
+from Sauvegarde import dicto
 import pickle
 import os
+from func_lagrange import l1, l2, l3, l4, l5
 
-
+obj = dicto["objets_9"]
 # ---- trucs de sauvegarde
 # Si le fichier Sauvegarde.data est inexistant, il crée un fichier vide portant ce nom
 if not os.path.isfile("Sauvegarde.data"):
@@ -28,24 +19,27 @@ liste_objets = pickle.load(fd)
 fd.close()
 # Demande à l'utilisateur quelle sauvegarde il veut utiliser et l'importe
 print(f"Sauvegardes disponibles: {liste_objets.keys()}")
-nom_fichier = input(
-    "Veuillez entrer le nom de la sauvegarde à utiliser ou enter pour utiliser le fichier déjà importé: ")
-# nom_fichier = "objets_6"
+# nom_fichier = input(
+#     "Veuillez entrer le nom de la sauvegarde à utiliser ou enter pour utiliser le fichier déjà importé: ")
+
+nom_fichier = "objets_9"
+lagrange = True  # Pour avoir un référentiel en rotation (vraiment utile pour checker les points de Lagrange)
+
 if nom_fichier == '':
     objets = obj
 else:
     objets = liste_objets[nom_fichier]
-    # print(liste_objets[nom_fichier])
+
 # --- initialisation des principales variables
 objets_total = objets  # les objets dans la sauvegarde, ainsi que les métadonnées qu'il pourrait éventuellement y avoir
 objets = objets[0]  # Objets de la sauvegarde, sans métadonnées
 temps = 0  # temps auquel la simulation est rendue
-uns = np.array([[[1, 1, 1]], [[1, 1, 1]], [[1, 1, 1]]])  # hmmm, j'ai aucune idée ce que ça fait
+# uns = np.array([[[1, 1, 1]], [[1, 1, 1]], [[1, 1, 1]]])  # hmmm, j'ai aucune idée ce que ça fait
 delta_t = 10  # pas de temps
 G = 6.67430 * 10 ** (-11)  # constante gravitationnelle kg m^3/s^2 * (1 km / 1000 m)^3
 # pos = []  # éventuellement une matrice de positions
 # v = []  # éventuellement une matrice de vitesses
-lagrange = True
+
 
 n_objets = len(objets)
 vecteur_masses = []
@@ -61,7 +55,7 @@ for i in range(len(objets)):
 # initialisation matrice masses
 for i in range(len(objets)):
     masses.append(masse[0:i] + [0] + masse[i + 1:])
-tailles = 0.07020274599593773 * np.power(np.array(masse), 0.333333333)  # vecteur de taille des objets
+tailles = 0.035101372997968866 * np.power(np.array(masse), 0.333333333)  # vecteur de taille des objets
 print(f"tailles = {tailles}")
 masses = G * np.array(masses)
 pos = np.array([objets[0][2]]).T  # position du premier objet
@@ -76,7 +70,8 @@ for i in range(1, len(objets)):
     v = np.concatenate((v, np.array([objets[i][1]]).T), 1)
 v_init = np.array([v], dtype='float64')  # matrice de vitesses initiale
 v = v_init  # on initialise la matrice de vitesses à la vitesse initiale
-pos_finale = pos_init
+
+posf = pos_init
 
 
 def acc(posi):
@@ -111,7 +106,7 @@ def position():
     global v
     global delta_t
     global lagrange
-    global pos_finale
+    global posf
     temps += delta_t  # On incrémente le temps
     # On applique un énorme RK4
     k_1 = delta_t * acc(pos)
@@ -125,11 +120,10 @@ def position():
     if lagrange:
         theta = np.arctan2(pos[0, 1, 1], pos[0, 0, 1])
         rotation = np.array([[np.cos(theta), np.sin(theta), 0], [-np.sin(theta), np.cos(theta), 0], [0 , 0, 1]])
-        pos_finale = np.array([(rotation @ pos[0, :, :])])
+        posf = np.array([(rotation @ pos[0, :, :])])
     else:
-        pos_finale = pos
-    return pos_finale
-
+        posf = pos
+    return posf
 
 
 masse_totale = 0
@@ -151,49 +145,16 @@ v = v_init - np.array([v_barycentre.T])
 barycentre_1 = np.array([np.array([np.concatenate(np.array([barycentre_1]).T, axis=0) for i in range(n_objets)]).T])
 # On soustrait la position de tous les corps par celle du barycentre pour que le barycentre soit au centre de l'écran
 pos = pos_init - barycentre_1
-# position()
 
-# J'ai sincèrement aucune idée de ce qui se passe à partir d'ici...
-app = pg.mkQApp("GLScatterPlotItem Example")
-w = gl.GLViewWidget()
-w.opts['distance'] = 20
-w.show()
-w.setWindowTitle('Énorme simulation de gravité')
-
-# g = gl.GLGridItem()
-# w.addItem(g)
-# pos3 = np.zeros((100, 100, 3))
-# pos3[:, :, :2] = np.mgrid[:100, :100].transpose(1, 2, 0) * [-0.1, 0.1]
-# pos3 = pos3.reshape(10000, 3)
-pos3 = pos[0, :, :]
-pos3 = pos3.T
-# ... jusqu'à ici. Ensuite, on change la couleur de nos points selon celle qui est spécifiée dans la sauvegarde importée
 couleur = []
 for i in range(n_objets):
     if len(objets[0]) == 4:
-        couleur.append(objets[i][3])
+        couleur.append(vector(objets[i][3][0], objets[i][3][1], objets[i][3][2]))
     else:
-        couleur = [1, 1, 1, .3]
+        couleur = vector(1, 1, 1)
 couleur = np.array(couleur)
 # plot les objets (points)
-sp3 = gl.GLScatterPlotItem(pos=pos3, color=couleur, size=tailles, pxMode=False)
-# On ajoute les points au graphique
-w.addItem(sp3)
-
-# Stack correspond à la matrice m X 3 X n (n = nombre d'itérations) des positions à travers le temps pour avoir les
-#       trajectoires
-stack = np.array([pos3])
-stack = np.rot90(stack, axes=(0, 1))
-liste = [] # liste des différentes trajectoires
-if len(objets_total[1]) != 0:
-    for i in objets_total[1]:
-        w.addItem(i) # on ajoute les trajectoires en métadonnées, s'il y en a
-for i in range(n_objets):  # On met les différentes trajectoires dans le graphique
-    liste.append(gl.GLLinePlotItem(pos=stack[i, :, :],
-                                   color=list(np.array(objets[n_objets - i - 1][3]) - np.array([0, 0, 0, 0.5])),
-                                   width=1, antialias=True, mode='line_strip'))
-    w.addItem(liste[i])
-k = 0
+liste_planetes = []
 
 
 def save(ecriture=False):  # Éventuellement pour sauvegarder. Fonctionne pas pour le moment
@@ -211,27 +172,43 @@ def save(ecriture=False):  # Éventuellement pour sauvegarder. Fonctionne pas po
         file.write("]\n")
 
 
-# Pour avoir un référentiel en rotation (vraiment utile pour checker les points de Lagrange)
+liste_courbes = []
+liste_positions = []
+for i in range(n_objets):
+    liste_planetes.append(sphere(pos=vector(posf[0, 0, i], posf[0, 1, i], posf[0, 2, i]), radius=tailles[i],
+                                 color=couleur[i]))
+    liste_positions.append(vector(posf[0, 0, i], posf[0, 1, i], posf[0, 2, i]))
+position()
+for i in range(n_objets):
+    liste_planetes[i].pos = vector(posf[0, 0, i], posf[0, 1, i], posf[0, 2, i])
+    liste_courbes.append(curve(liste_positions[i], vector(posf[0, 0, i], posf[0, 1, i], posf[0, 2, i]), color=couleur[i],
+                         retain=1000))
+k = 0
+if lagrange:
+    M_1 = masse[0]
+    M_2 = masse[1]
+    print(f"M_1, M_2 = {M_1}, {M_2}")
+    D = np.linalg.norm(pos[0, :, 0] - pos[0, :, 1])
+    print(f"D = {D}")
+    L_1 = l1(M_1, M_2, D)
+    L_2 = l2(M_1, M_2, D)
+    L_3 = l3(M_1, M_2, D)
+    L_4 = l4(M_1, M_2, D)
+    L_5 = l5(M_1, M_2, D)
+    sphere(pos=vector(L_1[0], L_1[1], L_1[2]), radius=250000)
+    sphere(pos=vector(L_2[0], L_2[1], L_2[2]), radius=250000)
+    sphere(pos=vector(L_3[0], L_3[1], L_3[2]), radius=250000)
+    sphere(pos=vector(L_4[0], L_4[1], L_4[2]), radius=250000)
+    sphere(pos=vector(L_5[0], L_5[1], L_5[2]), radius=250000)
+while True:
+    position()
+    for i in range(n_objets):
+        situ = vector(posf[0, 0, i], posf[0, 1, i], posf[0, 2, i])
+        liste_planetes[i].pos = situ
+        if k > 5:
+            liste_courbes[i].append(situ)
+    k += 1
+    if k > 6:
+        k = 0
 
 
-
-def update():  # C'est ça qui update la position dans l'interface graphique
-    # update surface positions and colors
-    global sp3, pos3, pos, stack, liste, k
-    position()  # On calcule la nouvelle position
-    pos3 = np.array([pos_finale[0, :, :].T])
-    # On ajoute les positions à stack, la matrice 3D de toutes les positions servant à grapher les trajectoires.
-    stack = np.concatenate((stack, np.rot90(pos3, axes=(0, 1))), axis=1)
-    for i, j in enumerate(liste):  # on update les lignes de trajectoires dans la liste
-        j.setData(pos=stack[i, :, :])
-    sp3.setData(pos=pos3)  # On update les positions
-
-
-# A rapport avec le graphique I guess
-t = QtCore.QTimer()
-t.timeout.connect(update)
-t.start(1)
-
-# Boucle de simulation (j'ai aucune idée de ce qui se passe là-dedans)
-if __name__ == '__main__':
-    pg.mkQApp().exec_()

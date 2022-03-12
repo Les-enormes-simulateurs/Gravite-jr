@@ -1,12 +1,13 @@
 À implémenter:
 
 - Mettre ça dans un environnement graphique qui a de l'allure (unity3D?)
-- Implémenter RK4 au lieu d'Euler-Cromer
+- Implémenter RK4 au lieu d'Euler-Cromer -> fait
 - Une fonction pour avancer le temps plus rapidement
-- Une manière contrôlable pour que les orbites s'effacent (probablement en fonction de l'angle)
+- Une manière contrôlable pour que les orbites s'effacent (en fonction de l'angle serait vraiment le mieux)
 - Collisions
-- Meilleure sauvegarde (mais c'est pas si pire que ça)
+- Façon de sauvegarder l'état actuel du simulateur
 - Une façon d'utiliser la carte graphique (cuda?)
 - Une façon d'utiliser au choix plus de threads
 - Faire en sorte qu'on puisse créer/éditer des objets dans l'interface graphique
 - Éventuellement une énorme option de relativité générale
+- Éventuellement une énorme option de gravité quantique
